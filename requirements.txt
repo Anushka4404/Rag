@@ -26,6 +26,10 @@ requests
 bs4
 lxml
 chromadb
-chromadb
 langchain
+langchain_chroma
 tiktoken
+openai
+unstructured
+beautifulsoup4
+python-dotenv
