@@ -1,18 +1,22 @@
 import streamlit as st
 import os
 from langchain import PromptTemplate
-from langchain.vectorstores import Chroma
+from langchain_pinecone import PineconeVectorStore
+from langchain.vectorstores import Pinecone
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from dotenv import load_dotenv
+from langchain_chroma import Chroma
 from langchain_groq import ChatGroq
-from src.helper import download_huggingface_embedding, load_data_from_uploaded_pdf, load_data_from_url, text_split
+from src.helper import download_huggingface_embedding, load_data, load_data_from_uploaded_pdf, load_data_from_url, text_split
 
 def main():
-    load_dotenv()
+    PINECONE_INDEX_NAME = "medical-chatbot"
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     embeddings = download_huggingface_embedding()
+    
+    load_dotenv()
     
     st.set_page_config(page_title="Medical-bot", page_icon="H", layout="wide")
     
@@ -34,24 +38,20 @@ def main():
         st.title("Healthcare Chatbot")
         question_input = st.text_input("Type your Question Here", "")
     
-    # Set temporary directory for ChromaDB
-    chroma_persist_path = "/tmp/chroma_db"
-    os.makedirs(chroma_persist_path, exist_ok=True)
-
     # Initialize docsearch
     docsearch = None
     
     if input_type == "PDF" and uploaded_file:
         st.success(f"Processing PDF: {uploaded_file.name}")
-        with open("/tmp/uploaded_file.pdf", "wb") as f:
+        with open("uploaded_file.pdf", "wb") as f:
             f.write(uploaded_file.getbuffer())
         
-        docs = load_data_from_uploaded_pdf("/tmp/uploaded_file.pdf")
+        docs = load_data_from_uploaded_pdf("uploaded_file.pdf")
         doc_chunks = text_split(docs)
         docsearch = Chroma.from_documents(documents=doc_chunks,
                                           embedding=embeddings,
                                           collection_name="PDF_database",
-                                          persist_directory=chroma_persist_path)
+                                          persist_directory="./chroma_db_PDF")
         st.success("Index loaded successfully")
     
     elif input_type == "URL" and url:
@@ -61,13 +61,13 @@ def main():
         docsearch = Chroma.from_documents(documents=doc_chunks,
                                           embedding=embeddings,
                                           collection_name="URL_database",
-                                          persist_directory=chroma_persist_path)
+                                          persist_directory="./chroma_db_url")
         st.success("Index loaded successfully")
         
     elif input_type == "Default":
         st.success("Using Medical Book")
         try:
-            docsearch = Chroma(persist_directory=chroma_persist_path, embedding_function=embeddings)
+            docsearch = PineconeVectorStore.from_existing_index(PINECONE_INDEX_NAME, embeddings)
             st.success("Index loaded successfully!")
         except Exception as e:
             st.error(f"Error loading index: {e}")
