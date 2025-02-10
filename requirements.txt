@@ -25,3 +25,7 @@ unstructured
 requests
 bs4
 lxml
+chromadb
+chromadb
+langchain
+tiktoken
