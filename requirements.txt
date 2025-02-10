@@ -21,3 +21,7 @@ langchain-core==0.3.31
 chromadb==0.6.3
 langchain-pinecone
 langchain-groq
+unstructured
+requests
+bs4
+lxml
